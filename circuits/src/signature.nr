@@ -1,26 +1,33 @@
-use crate::{EMAIL_HEADER_LENGTH, BN2048};
+use crate::{EMAIL_HEADER_LENGTH, BN2048, KEY_LIMBS_2048, KEY_BYTES_2048, RSA_EXPONENT};
 
 use dep::noir_rsa::bignum::BigNum;
 use dep::noir_rsa::bignum::runtime_bignum::BigNumInstance;
 use dep::noir_rsa::bignum::fields::Params2048;
-use dep::noir_rsa::RSA;
+use dep::noir_rsa::types::RSA;
 use dep::std::hash::{sha256};
 
-type RSA2048 = RSA<BN2048, BigNumInstance<18, Params2048>, 256>;
+type RSA2048 = RSA<BN2048, BigNumInstance<KEY_LIMBS_2048, Params2048>, KEY_BYTES_2048>;
 
-
+/**
+ * Verify a 2048-bit RSA (DKIM) signature over an email header
+ * 
+ * @param header - The email header
+ * @param pubkey_modulus_limbs - The DKIM RSA Pubkey
+ * @param redc_params_limbs - Barrett Reduction Parameter for Pubkey for efficient signature verification
+ * @param signature - The DKIM RSA Signature 
+ */
 pub fn check_DKIM_signature(
     header: [u8; EMAIL_HEADER_LENGTH],
-    pubkey_modulus_limbs: [Field; 18],
-    redc_params_limbs: [Field; 18],
+    pubkey_modulus_limbs: [Field; KEY_LIMBS_2048],
+    redc_params_limbs: [Field; KEY_LIMBS_2048],
     signature: BN2048
 ) {
-    let pubkey: BigNumInstance<18, Params2048> = BigNumInstance::new(pubkey_modulus_limbs, redc_params_limbs);
+    let pubkey: BigNumInstance<KEY_LIMBS_2048, Params2048> = BigNumInstance::new(pubkey_modulus_limbs, redc_params_limbs);
     
     let header_hash: [u8; 32] = sha256(header);
     
     let rsa: RSA2048 = RSA {};
-    assert(rsa.verify_sha256_pkcs1v15(pubkey, header_hash, signature));
+    assert(rsa.verify_sha256_pkcs1v15(pubkey, header_hash, signature, RSA_EXPONENT));
 }
 
 #[test]

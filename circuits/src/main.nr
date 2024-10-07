@@ -2,12 +2,14 @@ mod merkle_tree;
 mod utils;
 mod signature;
 
-use dep::std;
 use merkle_tree::compute_merkle_root;
 
 use dep::noir_rsa::bignum::BigNum;
 use dep::noir_rsa::bignum::fields::Params2048;
 
+global RSA_EXPONENT: u32 = 65537;
+global KEY_BYTES_2048: u32 = 256;
+global KEY_LIMBS_2048: u32 = 18;
 type BN2048 = BigNum<18, Params2048>;
 
 global LEVELS: Field = 8; // Depth of the tree
