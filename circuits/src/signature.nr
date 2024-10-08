@@ -1,9 +1,9 @@
 use crate::{EMAIL_HEADER_LENGTH, BN2048, KEY_LIMBS_2048, KEY_BYTES_2048, RSA_EXPONENT};
 
-use dep::noir_rsa::bignum::BigNum;
-use dep::noir_rsa::bignum::runtime_bignum::BigNumInstance;
-use dep::noir_rsa::bignum::fields::Params2048;
-use dep::noir_rsa::types::RSA;
+use dep::rsa::bignum::BigNum;
+use dep::rsa::bignum::runtime_bignum::BigNumInstance;
+use dep::rsa::bignum::fields::Params2048;
+use dep::rsa::types::RSA;
 use dep::std::hash::{sha256};
 
 type RSA2048 = RSA<BN2048, BigNumInstance<KEY_LIMBS_2048, Params2048>, KEY_BYTES_2048>;

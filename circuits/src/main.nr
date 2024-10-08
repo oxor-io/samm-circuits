@@ -4,19 +4,18 @@ mod signature;
 
 use merkle_tree::compute_merkle_root;
 
-use dep::noir_rsa::bignum::BigNum;
-use dep::noir_rsa::bignum::fields::Params2048;
+use dep::rsa::bignum::BigNum;
+use dep::rsa::bignum::fields::Params2048;
 
 global RSA_EXPONENT: u32 = 65537;
 global KEY_BYTES_2048: u32 = 256;
 global KEY_LIMBS_2048: u32 = 18;
-type BN2048 = BigNum<18, Params2048>;
+type BN2048 = BigNum<KEY_LIMBS_2048, Params2048>;
 
 global LEVELS: Field = 8; // Depth of the tree
 global EMAIL_HEADER_LENGTH: u32 = 472;
 global MAX_EMAIL_ADDRESS_LENGTH: u32 = 64; // the max length of email address
 global MSG_HASH_LENGTH: u32 = 5; // TODO change
-global CREATION_DATA_LENGTH: u32 = 31;
 
 fn main(
     header: [u8; EMAIL_HEADER_LENGTH],
@@ -31,9 +30,7 @@ fn main(
     msg_hash: pub [u8; MSG_HASH_LENGTH],
     pubkey_modulus_limbs: [Field; 18],
     redc_params_limbs: [Field; 18],
-    signature: BN2048,
-    creation_data: [u8; CREATION_DATA_LENGTH],
-    creation_ts_limit: pub u64
+    signature: BN2048
 ) {
     // sender must be member email address
     let (found, _) = utils::find_from_in_header(header, padded_member, member_length);
@@ -53,13 +50,6 @@ fn main(
 
     // check DKIM signature
     signature::check_DKIM_signature(header, pubkey_modulus_limbs, redc_params_limbs, signature);
-
-    // check expiration of DKIM signature
-    let (found, _) = utils::find_date_in_header(header, creation_data);
-    assert(found);
-    // TODO cast date to unix ts
-    // let creation_ts = ...
-    // assert(creation_ts >= creation_ts_limit);
 }
 
 #[test]
@@ -125,17 +115,6 @@ fn test_samm() {
         0xa48a824e4ebc7e0f1059f3ecfa57c4, 0x05c1db23f3c7d47ad7e7d7cfda5189, 0x79bb6bbbd8facf011f022fa9051aec, 0x24faa4cef474bed639362ea71f7a21, 0x1503aa50b77e24b030841a7d061581, 0x5bbf4e62805e1860a904c0f66a5fad, 0x5cbd24b72442d2ce647dd7d0a44368, 0x074a8839a4460c169dce7138efdaef, 0x0f06e09e3191b995b08e5b45182f65, 0x51fad4a89f8369fe10e5d4b6e149a1, 0xdc778b15982d11ebf7fe23b4e15f10, 0xa09ff3a4567077510c474e4ac0a21a, 0xb37e69e5dbb77167b73065e4c5ad6a, 0xecf4774e22e7fe3a38642186f7ae74, 0x16e72b5eb4c813a3b37998083aab81, 0xa48e7050aa8abedce5a45c16985376, 0xdd3285e53b322b221f7bcf4f8f8ad8, 0x0132
     ];
 
-    // data part
-    let data = "Sat, 26 Aug 2023 12:25:22 +0400".as_bytes();
-    let mut creation_data: [u8; CREATION_DATA_LENGTH] = [0; CREATION_DATA_LENGTH];
-    for i in 0..data.len() {
-        creation_data[i] = data[i];
-    }
-
-    println("DATA ---");
-    println(creation_data);
-
-    let creation_ts_limit: u64 = 1728035879;
 
     let _ = main(
         header,
@@ -151,7 +130,5 @@ fn test_samm() {
         pubkey_modulus_limbs,
         redc_params_limbs,
         signature,
-        creation_data,
-        creation_ts_limit,
     );
 }

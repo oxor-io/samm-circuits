@@ -37,3 +37,8 @@ Noir v0.34.0 <> BB v0.55.0
       bb verify_ultra_honk -k ./target/vk -p ./target/proof
     ```
     If successful, the verification will complete in silence; if unsuccessful, the command will trigger logging of the corresponding error.
+
+5. Generate Solidity Verifier contract:
+    ```
+      bb contract_ultra_honk
+    ```
