@@ -1,2 +1,4 @@
 circuits/target
 circuits/Prover.toml
+
+email_parser/target

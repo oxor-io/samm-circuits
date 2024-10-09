@@ -42,3 +42,13 @@ Noir v0.34.0 <> BB v0.55.0
     ```
       bb contract_ultra_honk
     ```
+
+## Parse email
+
+``` 
+  cd email_parser
+```
+
+```
+  cargo run --release
+```
