@@ -52,3 +52,13 @@ Noir v0.34.0 <> BB v0.55.0
 ```
   cargo run --release
 ```
+
+## Generate Merkle Tree
+
+```
+  npm install
+```
+
+```
+  npx run scripts/generateDataForTest.js
+```

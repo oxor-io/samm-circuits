@@ -1,3 +1,4 @@
 target/
-Prover.toml
 email_parser/target
+node_modules
+Prover_tree.toml

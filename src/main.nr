@@ -7,6 +7,8 @@ use merkle_tree::compute_merkle_root;
 use dep::rsa::bignum::BigNum;
 use dep::rsa::bignum::fields::Params2048;
 
+use dep::std::field::bytes32_to_field;
+
 global RSA_EXPONENT: u32 = 65537;
 global KEY_BYTES_2048: u32 = 256;
 global KEY_LIMBS_2048: u32 = 18;
@@ -14,30 +16,38 @@ type BN2048 = BigNum<KEY_LIMBS_2048, Params2048>;
 
 global LEVELS: Field = 8; // Depth of the tree
 global EMAIL_HEADER_LENGTH: u32 = 530; // TODO make parameter
-global MAX_EMAIL_ADDRESS_LENGTH: u32 = 64; // the max length of email address
+global MAX_EMAIL_ADDRESS_LENGTH: u32 = 32; // the max length of email address
 global MSG_HASH_LENGTH: u32 = 44; // base64 hash
 
 fn main(
     header: [u8; EMAIL_HEADER_LENGTH],
     root: pub Field,
-    leaf: Field,
     path_indices: [Field; LEVELS],
     path_elements: [Field; LEVELS],
-    padded_member: pub [u8; MAX_EMAIL_ADDRESS_LENGTH],
-    member_length: pub u32,
+    padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
+    member_length: u32,
     padded_relayer: pub [u8; MAX_EMAIL_ADDRESS_LENGTH],
     relayer_length: pub u32,
     msg_hash: pub [u8; MSG_HASH_LENGTH],
-    pubkey_modulus_limbs: [Field; KEY_LIMBS_2048],
-    redc_params_limbs: [Field; KEY_LIMBS_2048],
+    pubkey_modulus_limbs: pub [Field; KEY_LIMBS_2048],
+    redc_params_limbs: pub [Field; KEY_LIMBS_2048],
     signature: BN2048
 ) {
     // sender must be member email address
     let (found, _) = utils::find_from_in_header(header, padded_member, member_length);
     assert(found);
 
+    // convert padded_member to Field type
+    let mut be_member = [0; 32];
+    for i in 0..MAX_EMAIL_ADDRESS_LENGTH {
+        if (i < member_length) {
+            be_member[MAX_EMAIL_ADDRESS_LENGTH - member_length + i] = padded_member[i];
+        }
+    }
+    let member = bytes32_to_field(be_member); // TODO is overflow possible?
+
     // check merkle inclusion proof of sender email
-    let _root = compute_merkle_root(leaf, path_indices, path_elements);
+    let _root = compute_merkle_root(member, path_indices, path_elements);
     assert(_root == root);
 
     // recipient must be relayer email address
@@ -59,10 +69,9 @@ fn test_samm() {
     ];
 
     // tree part 
-    let leaf = 13780856135824609486835123660791248959181113742546918549559321242116770234576;
-    let path_indices = [0,0,1,1,0,1,1,0];
-    let path_elements = [14520510218039433773459597944105601781578483631006408988284677481489650471896,16735405162150476769165535806199980191266151907719469609340290185602038249334,11607634630385916762103142687024023731847490136503700052557112073181947753651,1094530894963466396181348105151045704221228209480186211832907007839607915796,3284044843315180235425920080565507273212761221150458610158014968492963231945,4641050443441813769099735638332230934538706616831662404912867311564816535000,13308983921089595976695015024214414181663897095192147251475586735720084500210,12699940109500066053124654505808015855541980379149317240855603319465855478536];
-    let root = 3507270469832926990571112645872386345557614009066375654691910206440851534809;
+    let path_indices = [0,0,0,0,0,0,0,0];
+    let path_elements = [459863526075666306853231,3543657057792069883752741965787822369508178548836633930556720680440261662685,2783006534913454278644563459943420116982061974011721451130438229487551662710,11286972368698509976183087595462810875513684078608517520839298933882497716792,3607627140608796879659380071776844901612302623152076817094415224584923813162,19712377064642672829441595136074946683621277828620209496774504837737984048981,20775607673010627194014556968476266066927294572720319469184847051418138353016,3396914609616007258851405644437304192397291162432396347162513310381425243293];
+    let root = 13478250241025044241834632636828135155416924205892387731890373634766567630611;
 
     // member
     let member = "swoons.00rubbing@icloud.com".as_bytes();
@@ -119,7 +128,6 @@ fn test_samm() {
     let _ = main(
         header,
         root,
-        leaf,
         path_indices,
         path_elements,
         padded_member,
