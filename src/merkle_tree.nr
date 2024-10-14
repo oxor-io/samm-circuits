@@ -1,7 +1,8 @@
 use dep::std;
+use crate::LEVELS;
 
 // Returns the merkle root of the tree from the provided leaf, path indices, siblings with poseidon hash.
-pub fn compute_merkle_root<N>(leaf: Field, path_indices: [Field; N], siblings: [Field; N]) -> Field {
+pub fn compute_merkle_root(leaf: Field, path_indices: [Field; LEVELS], siblings: [Field; LEVELS]) -> Field {
     let n = siblings.len();
     let mut current = leaf;
     for i in 0..n {

@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-Noir v0.34.0 <> BB v0.55.0
+Noir v0.35.0 <> BB v0.57.0
 
 ## Compilation
 

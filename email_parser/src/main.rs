@@ -13,6 +13,8 @@ use std::fs::write;
 use trust_dns_resolver::Resolver;
 
 const MSG_HASH_LENGTH: usize = 44; // base64 hash
+const MAX_HEADER_LENGTH: usize = 1024;
+const MAX_EMAIL_ADDRESS_LENGTH: usize = 32;
 
 #[derive(Clone, Debug)]
 struct DkimHeader {
@@ -248,7 +250,10 @@ pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> Vec<u8> {
     ];
     let header_str = headers.join("\r\n");
     let header_str = header_str.replace("\n\t", " ");
-    header_str.as_bytes().to_vec()
+    let header = header_str.as_bytes();
+    let mut padded_header = vec![0u8; MAX_HEADER_LENGTH];
+    padded_header[..header.len()].copy_from_slice(header);
+    padded_header
 }
 
 pub fn make_header_string(header: &Vec<u8>) -> String {
@@ -324,7 +329,7 @@ pub fn quote_hex(input: String) -> String {
 pub fn get_padded_recipient(eml: &Eml) -> (Vec<u8>, u32) {
     let recipient = eml.to.as_ref().unwrap().to_string();
     let recipient = recipient.as_bytes();
-    let mut padded_recipient = vec![0u8; 64];
+    let mut padded_recipient = vec![0u8; MAX_EMAIL_ADDRESS_LENGTH];
     let recipient_len = recipient.len() as u32;
     padded_recipient[..recipient.len()].copy_from_slice(recipient);
     (padded_recipient, recipient_len)
@@ -333,7 +338,7 @@ pub fn get_padded_recipient(eml: &Eml) -> (Vec<u8>, u32) {
 pub fn get_padded_sender(eml: &Eml) -> (Vec<u8>, u32) {
     let sender = eml.from.as_ref().unwrap().to_string();
     let sender = sender.as_bytes();
-    let mut padded_sender = vec![0u8; 64];
+    let mut padded_sender = vec![0u8; MAX_EMAIL_ADDRESS_LENGTH];
     let sender_len = sender.len() as u32;
     padded_sender[..sender.len()].copy_from_slice(sender);
     (padded_sender, sender_len)
