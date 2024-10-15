@@ -14,7 +14,7 @@ use trust_dns_resolver::Resolver;
 
 const MSG_HASH_LENGTH: usize = 44; // base64 hash
 const MAX_HEADER_LENGTH: usize = 1024;
-const MAX_EMAIL_ADDRESS_LENGTH: usize = 32;
+const MAX_EMAIL_ADDRESS_LENGTH: usize = 31;
 
 #[derive(Clone, Debug)]
 struct DkimHeader {
@@ -296,7 +296,7 @@ pub fn build_prover_toml(
     let recipient_len = format!("relayer_length = {}", recipient_len);
     // make the signature value
     let sig_limbs = bn_limbs(BigUint::from_bytes_be(signature), 2048);
-    let signature = format!("[signature]\nlimbs = {}", quote_hex(sig_limbs));
+    let signature = format!("signature = {}", quote_hex(sig_limbs));
 
     // format for toml content
     let toml_content = format!(
