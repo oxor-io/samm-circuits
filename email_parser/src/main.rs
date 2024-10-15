@@ -40,7 +40,7 @@ fn main() {
 
     // Parse out the headers of the email
     let relaxed_headers = build_relaxed_headers(&eml);
-    let signed_headers = to_signed_headers(&relaxed_headers);
+    let (signed_headers, header_len) = to_signed_headers(&relaxed_headers);
 
     // Extract the DKIM-Signature header from the email
     let dkim_header = &eml
@@ -78,6 +78,7 @@ fn main() {
     // build the prover.toml file
     build_prover_toml(
         &signed_headers,
+        header_len,
         &signature,
         &public_key,
         &padded_recipient,
@@ -236,7 +237,7 @@ pub fn build_relaxed_headers(eml: &Eml) -> RelaxedHeaders {
     };
 }
 
-pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> Vec<u8> {
+pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> (Vec<u8>, u32) {
     let headers = vec![
         // h=To:From:Subject:Date:Message-Id:Content-Type:MIME-Version;
         format!("to:{}", relaxed_headers.to.clone()),
@@ -251,9 +252,10 @@ pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> Vec<u8> {
     let header_str = headers.join("\r\n");
     let header_str = header_str.replace("\n\t", " ");
     let header = header_str.as_bytes();
+    let header_len = header.len() as u32;
     let mut padded_header = vec![0u8; MAX_HEADER_LENGTH];
     padded_header[..header.len()].copy_from_slice(header);
-    padded_header
+    (padded_header, header_len)
 }
 
 pub fn make_header_string(header: &Vec<u8>) -> String {
@@ -262,6 +264,7 @@ pub fn make_header_string(header: &Vec<u8>) -> String {
 
 pub fn build_prover_toml(
     header: &Vec<u8>,
+    header_len: u32,
     signature: &Vec<u8>,
     public_key: &RsaPublicKey,
     padded_recipient: &Vec<u8>,
@@ -272,6 +275,7 @@ pub fn build_prover_toml(
 ) {
     // make the header value
     let header = format!("header = {:?}", header);
+    let header_len = format!("header_length = {}", header_len);
     // make the pubkey_modulus value
     let pubkey_modulus = format!(
         "pubkey_modulus_limbs = {}",
@@ -296,8 +300,9 @@ pub fn build_prover_toml(
 
     // format for toml content
     let toml_content = format!(
-        "{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
+        "{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
         header,
+        header_len,
         padded_subject,
         padded_sender,
         sender_len,
