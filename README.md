@@ -46,7 +46,7 @@ Noir v0.35.0 <> BB v0.57.0
 ## Parse email
 
 ``` 
-  cd email_parser
+  cd helpers/email_parser
 ```
 
 ```
@@ -54,6 +54,10 @@ Noir v0.35.0 <> BB v0.57.0
 ```
 
 ## Generate Merkle Tree
+
+``` 
+  cd helpers/member_tree_generator
+```
 
 ```
   npm install

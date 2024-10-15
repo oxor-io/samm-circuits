@@ -315,7 +315,7 @@ pub fn build_prover_toml(
 
     // save to fs
     let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let file_path = current_dir.join("..").join("Prover.toml");
+    let file_path = current_dir.join("Prover.toml");
     write(file_path, toml_content).expect("Failed to write to Prover.toml");
 }
 
