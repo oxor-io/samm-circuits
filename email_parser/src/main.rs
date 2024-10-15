@@ -12,7 +12,9 @@ use std::error::Error;
 use std::fs::write;
 use trust_dns_resolver::Resolver;
 
-const MSG_HASH_LENGTH: usize = 44; // base64 hash
+use sha2::{Sha256, Digest};
+
+const MSG_HASH_LENGTH: usize = 66; // base64 hash
 const MAX_HEADER_LENGTH: usize = 1024;
 const MAX_EMAIL_ADDRESS_LENGTH: usize = 32;
 
@@ -91,7 +93,7 @@ fn main() {
 
 fn get_demo_eml() -> Eml {
     let current_dir = std::env::current_dir().unwrap();
-    let filepath = current_dir.join("src").join("demo.eml");
+    let filepath = current_dir.join("src").join("demo_hex.eml");
     EmlParser::from_file(filepath.to_str().unwrap())
         .unwrap()
         .parse()
@@ -208,6 +210,7 @@ pub fn build_relaxed_headers(eml: &Eml) -> RelaxedHeaders {
         .unwrap()
         .value
         .to_string();
+    println!("dkim_signature before = {:?};", &dkim_signature);
     // remove signature from dkim field
     let patterns = ["; b=", ";\n\tb="];
     let result = patterns
@@ -225,6 +228,8 @@ pub fn build_relaxed_headers(eml: &Eml) -> RelaxedHeaders {
         None => panic!("Failed to find the signature in the DKIM-Signature header"),
     };
     let dkim_signature = String::from(&dkim_signature[..b_index + 4 + offset]); // Include the '; b=' part
+    println!("======================");
+    println!("dkim_signature after = {:?};", &dkim_signature);
     return RelaxedHeaders {
         from,
         content_type,
@@ -252,6 +257,12 @@ pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> (Vec<u8>, u32) {
     let header_str = headers.join("\r\n");
     let header_str = header_str.replace("\n\t", " ");
     let header = header_str.as_bytes();
+
+    let mut hasher = Sha256::new();
+    hasher.update(header);
+    let header_hash = hasher.finalize().to_vec();
+    println!("header_hash = {:?};", &header_hash);
+
     let header_len = header.len() as u32;
     let mut padded_header = vec![0u8; MAX_HEADER_LENGTH];
     padded_header[..header.len()].copy_from_slice(header);
