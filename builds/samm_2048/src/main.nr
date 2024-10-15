@@ -1,16 +1,11 @@
-mod merkle_tree;
-mod utils;
-
-use merkle_tree::compute_merkle_root;
-use dep::std::field::bytes32_to_field;
 use dep::zkemail::{
     KEY_LIMBS_2048, dkim::verify_dkim_2048
 };
+use dep::samm::{
+    LEVELS, MAX_EMAIL_HEADER_LENGTH, MAX_EMAIL_ADDRESS_LENGTH,
+    MSG_HASH_LENGTH, verify_samm_logic
+};
 
-global LEVELS: u32 = 8; // Depth of the tree
-global MAX_EMAIL_HEADER_LENGTH: u32 = 1024;
-global MAX_EMAIL_ADDRESS_LENGTH: u32 = 31; // the max length of email address
-global MSG_HASH_LENGTH: u32 = 44; // base64 hash
 
 fn main(
     header: [u8; MAX_EMAIL_HEADER_LENGTH],
@@ -27,30 +22,9 @@ fn main(
     redc_params_limbs: pub [Field; KEY_LIMBS_2048],
     signature: [Field; KEY_LIMBS_2048]
 ) {
-    // sender must be member email address
-    let (found, _) = utils::find_from_in_header(header, header_length, padded_member, member_length);
-    assert(found);
-
-    // convert padded_member to Field type
-    let mut be_member = [0; 32];
-    for i in 0..32 {
-        if (i < member_length) {
-            be_member[32 - member_length + i] = padded_member[i];
-        }
-    }
-    let member = bytes32_to_field(be_member);
-
-    // check merkle inclusion proof of sender email
-    let _root = compute_merkle_root(member, path_indices, path_elements);
-    assert(_root == root);
-
-    // recipient must be relayer email address
-    let (found, _) = utils::find_to_in_header(header, header_length, padded_relayer, relayer_length);
-    assert(found);
-
-    // check that subject field of header is msgHash
-    let (found, _) = utils::find_subject_in_header(header, header_length, msg_hash);
-    assert(found);
+    // check samm logic
+    verify_samm_logic(header, header_length, root, path_indices, path_elements, padded_member,
+        member_length, padded_relayer, relayer_length, msg_hash);
 
     // check DKIM signature
     verify_dkim_2048(header, header_length, pubkey_modulus_limbs, redc_params_limbs, signature);
