@@ -73,3 +73,7 @@ Noir v0.35.0 <> BB v0.57.0
 ```
     npx run scripts/generateDataForTest.js
 ```
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
