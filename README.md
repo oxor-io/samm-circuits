@@ -31,6 +31,10 @@ Noir v0.35.0 <> BB v0.57.0
     ```
         bb prove_ultra_honk -b ./target/samm_2048.json -w ./target/witness-samm.gz -o ./target/proof
     ```
+    For Solidity Verifier run:
+    ```
+        bb prove_ultra_keccak_honk -b ./target/samm_2048.json -w ./target/witness-samm.gz -o ./target/proof2048
+    ```
 
 3. Compute the verification key for your Noir program running:
     ```
@@ -45,7 +49,7 @@ Noir v0.35.0 <> BB v0.57.0
 
 5. Generate Solidity Verifier contract:
     ```
-        bb contract_ultra_honk
+        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_2048.json -o ./target/Verifier.sol
     ```
 
 ## Helpers

@@ -1,6 +1,7 @@
 */*/target/*
-!*/*/target/contract.sol
+!*/*/target/Verifier.sol
 email_parser/target
 node_modules
 helpers/member_tree_generator/Prover_tree.toml
 helpers/email_parser/Prover.toml
+-b/
