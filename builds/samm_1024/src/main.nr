@@ -21,11 +21,13 @@ fn main(
     pubkey_modulus_limbs: pub [Field; KEY_LIMBS_1024],
     redc_params_limbs: pub [Field; KEY_LIMBS_1024],
     signature: [Field; KEY_LIMBS_1024]
-) {
+) -> pub Field {
     // check samm logic
-    verify_samm_logic(header, header_length, root, path_indices, path_elements, padded_member,
+    let commitment = verify_samm_logic(header, header_length, root, path_indices, path_elements, padded_member,
         member_length, padded_relayer, relayer_length, msg_hash);
 
     // check DKIM signature
     verify_dkim_1024(header, header_length, pubkey_modulus_limbs, redc_params_limbs, signature);
+    
+    commitment
 }

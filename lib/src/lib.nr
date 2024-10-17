@@ -20,7 +20,7 @@ pub fn verify_samm_logic(
     padded_relayer: [u8; MAX_EMAIL_ADDRESS_LENGTH],
     relayer_length: u32,
     msg_hash: [u8; MSG_HASH_LENGTH]
-) {
+) -> pub Field {
     assert(header_length <= MAX_EMAIL_HEADER_LENGTH);
     assert(member_length <= MAX_EMAIL_ADDRESS_LENGTH);
     assert(relayer_length <= MAX_EMAIL_ADDRESS_LENGTH);
@@ -49,6 +49,20 @@ pub fn verify_samm_logic(
     // check that subject field of header is msgHash
     let (found, _) = utils::find_subject_in_header(header, header_length, msg_hash);
     assert(found);
+
+    // Return commitment
+    compute_commitment(member, msg_hash)
+}
+
+fn compute_commitment(member: Field, msg_hash_b44: [u8; MSG_HASH_LENGTH]) -> Field {
+    // convert msg_hash to Field type
+    let mut msg_hash_b32 = [0; 32];
+    for i in 0..32 {
+        msg_hash_b32[i] = msg_hash_b44[i];
+    }
+    let msg_hash = bytes32_to_field(msg_hash_b32);
+
+    std::hash::poseidon::bn254::hash_2([member, msg_hash])
 }
 
 #[test]
