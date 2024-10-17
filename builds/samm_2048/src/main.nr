@@ -18,10 +18,10 @@ fn main(
     padded_relayer: pub [u8; MAX_EMAIL_ADDRESS_LENGTH],
     relayer_length: pub u32,
     msg_hash: pub [u8; MSG_HASH_LENGTH],
-    pubkey_modulus_limbs: pub [Field; KEY_LIMBS_2048],
-    redc_params_limbs: pub [Field; KEY_LIMBS_2048],
+    pubkey_modulus_limbs: [Field; KEY_LIMBS_2048],
+    redc_params_limbs: [Field; KEY_LIMBS_2048],
     signature: [Field; KEY_LIMBS_2048]
-) -> pub Field {
+) -> pub (Field, Field) {
     // check samm logic
     let commitment = verify_samm_logic(header, header_length, root, path_indices, path_elements, padded_member,
         member_length, padded_relayer, relayer_length, msg_hash);
@@ -29,7 +29,14 @@ fn main(
     // check DKIM signature
     verify_dkim_2048(header, header_length, pubkey_modulus_limbs, redc_params_limbs, signature);
 
-    commitment
+    // return pubkey hash
+    let mut pubkey_16 = [0; 16];
+    for i in 0..16 {
+        pubkey_16[i] = pubkey_modulus_limbs[i];
+    }
+    let pubkeyHash = std::hash::poseidon::bn254::hash_16(pubkey_16);
+
+    (commitment, pubkeyHash)
 }
 
 #[test]
