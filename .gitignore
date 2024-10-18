@@ -3,5 +3,5 @@
 email_parser/target
 node_modules
 helpers/member_tree_generator/Prover_tree.toml
-helpers/email_parser/Prover.toml
+helpers/email_parser/Prover_email.toml
 -b/

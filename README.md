@@ -17,7 +17,7 @@ The details are outlined in:
 This repository consists of several parts:
 - **lib folder** - contains the `samm` Nargo library which implements the main logic of SAMM.
 - **builds folder** - contains two Nargo bin projects: `samm_1024`, `samm_2048`. Both projects are built on top of the samm library and differ only in the size of the public key in the DKIM signature.
-- **helpers folder** - contains auxiliary scripts needed for preparing data for tests. The `email_parser` project allows you to obtain a Prover.toml file from an email. The `member_tree_generator` project allows generating a Merkle tree proof for a specific SAMM member.
+- **helpers folder** - contains auxiliary scripts needed for preparing data for tests.
 
 ## Dependencies
 
@@ -128,13 +128,13 @@ To run the tests (separately in the folders `./lib`, `./builds/samm_2048`, `./bu
 
 ## Helpers
 
-The helpers folder contains auxiliary scripts needed for preparing data for tests.
+The helpers folder contains auxiliary scripts needed for preparing data for tests, specifically for generating a custom `Prover.toml` file. Note that the prepared `Prover.toml` files are already located in the folders `./builds/samm_2048` and `./builds/samm_1024`, so this step is optional.
 
-**Disclaimer**: The code in the `Helpers` folder was only used for development and should never be run in production.
+**Disclaimer**: The code in the `Helpers` folder was only used for development and should never be run in production. Also, this code should not be subject to an audit.
 
 ### Parse email
 
-The `email_parser` project allows you to obtain a `Prover.toml` file from an email.
+The `email_parser` project allows you to extract part of the public signals for the `Prover.toml` file from an email.
 
 To do this, go to the necessary folder:
 ``` 
@@ -144,7 +144,7 @@ and run the script:
 ```
     cargo run --release
 ```
-As a result, you will get a `Prover.toml` file with public signals inside. This file should be used together with the `Prover_tree.toml` from the `member_tree_generator` to compile the resulting `Prover.toml`.
+As a result, you will get a `Prover_email.toml` file with circuit's input signals inside. This file should be combined with the `Prover_tree.toml` from the `member_tree_generator` to compile the resulting `Prover.toml`.
 
 ### Generate Merkle Tree
 
@@ -162,7 +162,7 @@ And run the script:
 ```
     npx run scripts/generateDataForTest.js
 ```
-As a result, you will get a `Prover_tree.toml` file with a Merkle proof inside. This file should be used together with the `Prover.toml` from the email_parser to compile the resulting `Prover.toml`.
+As a result, you will get a `Prover_tree.toml` file with a Merkle proof (circuit's input signal) inside. This file should be combined with the `Prover_email.toml` from the `email_parser` to compile the resulting `Prover.toml`.
 
 ## License
 
