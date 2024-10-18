@@ -5,7 +5,7 @@ const { stringify: tomlStringify } = require("@iarna/toml");
 const { writeFile } = require("fs");
 
 const TEST_EMAIL_ADDRESSES = [
-    "swoons.00rubbing@icloud.com",
+    'Dry 914 <dry-914@yandex.com>',
     "aa@oxor.io",
     "ab@oxor.io",
     "ac@oxor.io",

@@ -240,13 +240,21 @@ pub fn build_relaxed_headers(eml: &Eml) -> RelaxedHeaders {
 pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> (Vec<u8>, u32) {
     let headers = vec![
         // h=To:From:Subject:Date:Message-Id:Content-Type:MIME-Version;
+        // format!("to:{}", relaxed_headers.to.clone()),
+        // format!("from:{}", relaxed_headers.from.clone()),
+        // format!("subject:{}", relaxed_headers.subject.clone()),
+        // format!("date:{}", relaxed_headers.date.clone()),
+        // format!("message-id:{}", relaxed_headers.message_id.clone()),
+        // format!("content-type:{}", relaxed_headers.content_type.clone()),
+        // format!("mime-version:{}", relaxed_headers.mime_version.clone()),
+        // format!("dkim-signature:{}", relaxed_headers.dkim_signature.clone()),
+        
+        // h=Message-Id:Date:Subject:To:From
+        format!("message-id:{}", relaxed_headers.message_id.clone()),
+        format!("date:{}", relaxed_headers.date.clone()),
+        format!("subject:{}", relaxed_headers.subject.clone()),
         format!("to:{}", relaxed_headers.to.clone()),
         format!("from:{}", relaxed_headers.from.clone()),
-        format!("subject:{}", relaxed_headers.subject.clone()),
-        format!("date:{}", relaxed_headers.date.clone()),
-        format!("message-id:{}", relaxed_headers.message_id.clone()),
-        format!("content-type:{}", relaxed_headers.content_type.clone()),
-        format!("mime-version:{}", relaxed_headers.mime_version.clone()),
         format!("dkim-signature:{}", relaxed_headers.dkim_signature.clone()),
     ];
     let header_str = headers.join("\r\n");
