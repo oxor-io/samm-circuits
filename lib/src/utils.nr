@@ -1,5 +1,5 @@
 use crate::{MAX_EMAIL_HEADER_LENGTH, MAX_EMAIL_ADDRESS_LENGTH, MSG_HASH_LENGTH};
-use dep::string_search::{StringBody, SubString, StringBody1024, SubString32, SubString64};
+use dep::string_search::{StringBody, SubString, StringBody1024, SubString32, SubString64, SubString128};
 
 /**
  * Attempt to find "from" field in the email header
@@ -18,7 +18,7 @@ pub fn find_from_in_header(
     // init the search params
     let needle_text_init: [u8; 5] = "from:".as_bytes();
     let needle_start: SubString32 = SubString::new(needle_text_init, needle_text_init.len());
-    let needle_end: SubString32 = SubString::new(padded_from, from_length);
+    let needle_end: SubString128 = SubString::new(padded_from, from_length);
     let needle = needle_start.concat_into(needle_end);
 
     // init the search domain
@@ -45,7 +45,7 @@ pub fn find_to_in_header(
     // init the search params
     let needle_text_init: [u8; 3] = "to:".as_bytes();
     let needle_start: SubString32 = SubString::new(needle_text_init, needle_text_init.len());
-    let needle_end: SubString32 = SubString::new(padded_to, to_length);
+    let needle_end: SubString128 = SubString::new(padded_to, to_length);
     let needle = needle_start.concat_into(needle_end);
 
     // init the search domain

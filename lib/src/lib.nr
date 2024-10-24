@@ -6,7 +6,7 @@ use dep::std::field::bytes32_to_field;
 
 global LEVELS: u32 = 8; // Depth of the tree
 global MAX_EMAIL_HEADER_LENGTH: u32 = 1024;
-global MAX_EMAIL_ADDRESS_LENGTH: u32 = 31; // the max length of email address
+global MAX_EMAIL_ADDRESS_LENGTH: u32 = 124; // the max length of email address (4 slots 31 bytes each)
 global MSG_HASH_LENGTH: u32 = 44; // base64 hash
 
 pub fn verify_samm_logic(
@@ -15,12 +15,13 @@ pub fn verify_samm_logic(
     root: Field,
     path_indices: [Field; LEVELS],
     path_elements: [Field; LEVELS],
+    secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
     member_length: u32,
     padded_relayer: [u8; MAX_EMAIL_ADDRESS_LENGTH],
     relayer_length: u32,
     msg_hash: [u8; MSG_HASH_LENGTH]
-) -> pub Field {
+) -> Field {
     assert(header_length <= MAX_EMAIL_HEADER_LENGTH);
     assert(member_length <= MAX_EMAIL_ADDRESS_LENGTH);
     assert(relayer_length <= MAX_EMAIL_ADDRESS_LENGTH);
@@ -30,16 +31,10 @@ pub fn verify_samm_logic(
     assert(found);
 
     // convert padded_member to Field type
-    let mut be_member = [0; 32];
-    for i in 0..32 {
-        if (i < member_length) {
-            be_member[32 - member_length + i] = padded_member[i];
-        }
-    }
-    let member = bytes32_to_field(be_member);
+    let leaf = member_to_leaf(padded_member, secret);
 
     // check merkle inclusion proof of sender email
-    let _root = compute_merkle_root(member, path_indices, path_elements);
+    let _root = compute_merkle_root(leaf, path_indices, path_elements);
     assert(_root == root);
 
     // recipient must be relayer email address
@@ -51,18 +46,36 @@ pub fn verify_samm_logic(
     assert(found);
 
     // Return commitment
-    compute_commitment(member, msg_hash)
+    compute_commitment(leaf, msg_hash)
 }
 
-fn compute_commitment(member: Field, msg_hash_b44: [u8; MSG_HASH_LENGTH]) -> Field {
-    // convert msg_hash to Field type
-    let mut msg_hash_b32 = [0; 32];
-    for i in 0..32 {
-        msg_hash_b32[i] = msg_hash_b44[i];
+fn member_to_leaf(padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH], secret: Field) -> Field {
+    let mut chunks = [0; 5];
+    let mut chunk = [0; 32];
+    for i in 0..4 {
+        for j in 0..31 {
+            chunk[j+1] = padded_member[31*i + j];
+        }
+        chunks[i] = bytes32_to_field(chunk);
     }
-    let msg_hash = bytes32_to_field(msg_hash_b32);
+    chunks[4] = secret;
 
-    std::hash::poseidon::bn254::hash_2([member, msg_hash])
+    std::hash::poseidon::bn254::hash_5(chunks)
+}
+
+fn compute_commitment(leaf: Field, msg_hash: [u8; MSG_HASH_LENGTH]) -> Field {
+    // convert msg_hash to Field type
+    let mut chunks = [0; 3];
+    let mut chunk = [0; 32];
+    for i in 0..2 {
+        for j in 0..22 {
+            chunk[j+10] = msg_hash[22*i + j];
+        }
+        chunks[i] = bytes32_to_field(chunk);
+    }
+    chunks[2] = leaf;
+
+    std::hash::poseidon::bn254::hash_3(chunks)
 }
 
 #[test]
@@ -74,8 +87,9 @@ fn test_samm() {
 
     // tree part 
     let path_indices = [0,0,0,0,0,0,0,0];
-    let path_elements = [459863526075666306853231,3543657057792069883752741965787822369508178548836633930556720680440261662685,2783006534913454278644563459943420116982061974011721451130438229487551662710,11286972368698509976183087595462810875513684078608517520839298933882497716792,3607627140608796879659380071776844901612302623152076817094415224584923813162,19712377064642672829441595136074946683621277828620209496774504837737984048981,20775607673010627194014556968476266066927294572720319469184847051418138353016,3396914609616007258851405644437304192397291162432396347162513310381425243293];
-    let root = 13478250241025044241834632636828135155416924205892387731890373634766567630611;
+    let path_elements = [12181380747766530663019567607642183183842923227107503250029079799455572184768,14752333704901535729870671529802743390978931851983497868673528090961169705309,16538135409515176547194568220928820916682786764828918280336228751737583509415,11286972368698509976183087595462810875513684078608517520839298933882497716792,3607627140608796879659380071776844901612302623152076817094415224584923813162,19712377064642672829441595136074946683621277828620209496774504837737984048981,20775607673010627194014556968476266066927294572720319469184847051418138353016,3396914609616007258851405644437304192397291162432396347162513310381425243293];
+    let root = 3693852034816220969980398025931646744713742489852125909138985185751997118833;
+    let secret = 1;
 
     // member
     let member = "swoons.00rubbing@icloud.com".as_bytes();
@@ -115,12 +129,13 @@ fn test_samm() {
     println("MSG_HASH ---");
     println(msg_hash);
 
-    verify_samm_logic(
+    let _ = verify_samm_logic(
         header,
         header_length,
         root,
         path_indices,
         path_elements,
+        secret,
         padded_member,
         member.len(),
         padded_relayer,
