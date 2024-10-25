@@ -13,6 +13,7 @@ fn main(
     root: pub Field,
     path_indices: [Field; LEVELS],
     path_elements: [Field; LEVELS],
+    secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
     member_length: u32,
     padded_relayer: pub [u8; MAX_EMAIL_ADDRESS_LENGTH],
@@ -23,7 +24,7 @@ fn main(
     signature: [Field; KEY_LIMBS_1024]
 ) -> pub (Field, Field) {
     // check samm logic
-    let commitment = verify_samm_logic(header, header_length, root, path_indices, path_elements, padded_member,
+    let commitment = verify_samm_logic(header, header_length, root, path_indices, path_elements, secret, padded_member,
         member_length, padded_relayer, relayer_length, msg_hash);
 
     // check DKIM signature

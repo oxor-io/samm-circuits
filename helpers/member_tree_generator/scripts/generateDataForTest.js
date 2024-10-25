@@ -4,6 +4,8 @@ const { resolve } = require("path");
 const { stringify: tomlStringify } = require("@iarna/toml");
 const { writeFile } = require("fs");
 
+const { buildPoseidon } = require("circomlibjs");
+
 const TEST_EMAIL_ADDRESSES = [
     "swoons.00rubbing@icloud.com",
     "aa@oxor.io",
@@ -11,7 +13,15 @@ const TEST_EMAIL_ADDRESSES = [
     "ac@oxor.io",
     "ad@oxor.io"
 ]
+const TEST_SECRETS = [
+    1,
+    2,
+    3,
+    4,
+    5
+]
 const TREE_HIGHT = 8;
+const MAX_EMAIL_ADDRESS_LENGTH = 124;
 
 function prepareForSerialization(obj) {
     if (obj instanceof Uint8Array) obj = Array.from(obj);
@@ -48,17 +58,47 @@ function writeProverTOML(inputs, writeTo) {
 }
 
 (async function () {
+    const poseidon = await buildPoseidon();
+    
+    function poseidonHash(values) {
+        if (!Array.isArray(values)) {
+            throw new Error("Values must be an array type");
+        }
+    
+        const res = poseidon(values);
+        return poseidon.F.toObject(res);
+    }
+
     // convert email address to BigInt
     let members = TEST_EMAIL_ADDRESSES.map((val) => Array.from(Buffer.from(val, 'utf8')));
-    members = members.map(val => BigInt('0x' + val.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), '')));
+    // console.log(members)
 
-    const { proof, tree } = await getInclusionProof(members[0], members, TREE_HIGHT);
+    // 124 - len of email address
+    members = members.map(val => val.concat(Array(MAX_EMAIL_ADDRESS_LENGTH-val.length).fill(0)))
+    // console.log(members)
+
+    // 4 slots for email address + 1 slot secret (31 bytes each slot)
+    let leafs = []
+    let chunks
+    let chunk
+    for (let i = 0; i < TEST_EMAIL_ADDRESSES.length; i++) {
+        chunks = [0, 0, 0, 0, TEST_SECRETS[i]]
+        for (let j = 0; j <4; j++) {
+            chunk = members[i].slice(31*j,31*j+31)
+            chunks[j] = BigInt('0x' + chunk.reduce((acc, byte) => acc + byte.toString(16).padStart(2, '0'), ''))
+        }
+        // console.log(chunks)
+        leafs.push(poseidonHash(chunks))
+    }
+    // console.log(leafs)
+
+    const { proof, tree } = await getInclusionProof(leafs[0], leafs, TREE_HIGHT);
 
     let data = {
         root: tree.root.toString(),
         path_elements: proof.pathElements,
         path_indices: proof.pathIndices,
-        leaf: members[0],
+        leaf: leafs[0],
     };
     const pathToWrite = resolve("./Prover_tree.toml");
     writeProverTOML(data, pathToWrite);
