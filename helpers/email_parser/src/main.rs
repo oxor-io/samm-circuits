@@ -86,6 +86,7 @@ fn main() {
         &padded_sender,
         sender_len,
         &padded_subject,
+        &eml,
     );
 }
 
@@ -96,6 +97,28 @@ fn get_demo_eml() -> Eml {
         .unwrap()
         .parse()
         .unwrap()
+}
+
+fn find_substring_start_index(main_vec: &[u8], sub_vec: &[u8]) -> Option<usize> {
+    let main_str = std::str::from_utf8(main_vec).ok()?;
+    let sub_str = std::str::from_utf8(sub_vec).ok()?;
+
+    if !main_str.contains(sub_str) {
+        return None;
+    }
+
+    main_str.find(sub_str)
+}
+
+fn extract_emails(text: String) -> Vec<String> {
+    let re = Regex::new(r"(?:[\w\.-]+@[\w\.-]+\.\w+|\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b)").unwrap();
+    
+    re.captures_iter(&text)
+        .filter_map(|cap| {
+            let email = cap.get(0).map_or("", |m| m.as_str());
+            Some(String::from(email))
+        })
+        .collect()
 }
 
 fn parse_dkim_header(dkim_header: &HeaderFieldValue) -> DkimHeader {
@@ -248,6 +271,14 @@ pub fn to_signed_headers(relaxed_headers: &RelaxedHeaders) -> (Vec<u8>, u32) {
         format!("content-type:{}", relaxed_headers.content_type.clone()),
         format!("mime-version:{}", relaxed_headers.mime_version.clone()),
         format!("dkim-signature:{}", relaxed_headers.dkim_signature.clone()),
+        
+        // h=Message-Id:Date:Subject:To:From
+        // format!("message-id:{}", relaxed_headers.message_id.clone()),
+        // format!("date:{}", relaxed_headers.date.clone()),
+        // format!("subject:{}", relaxed_headers.subject.clone()),
+        // format!("to:{}", relaxed_headers.to.clone()),
+        // format!("from:{}", relaxed_headers.from.clone()),
+        // format!("dkim-signature:{}", relaxed_headers.dkim_signature.clone()),
     ];
     let header_str = headers.join("\r\n");
     let header_str = header_str.replace("\n\t", " ");
@@ -272,14 +303,40 @@ pub fn build_prover_toml(
     padded_sender: &Vec<u8>,
     sender_len: u32,
     padded_subject: &Vec<u8>,
+    eml: &Eml,
 ) {
+    let from_field = eml.from.as_ref().unwrap().to_string();
+    let padded_from = from_field.as_bytes();
+    let from_index = find_substring_start_index(header, padded_from).unwrap() - 5;
+    let from_seq = format!("[from_seq]\nindex = {:?}\nlength = {:?}", from_index, from_field.len()+5);
+
+    let to_field = eml.to.as_ref().unwrap().to_string();
+    let padded_to = to_field.as_bytes();
+    let to_index = find_substring_start_index(header, padded_to).unwrap() - 3;
+    let to_seq = format!("[to_seq]\nindex = {:?}\nlength = {:?}", to_index, to_field.len()+3);
+
+    let mut member_index = from_index + 5; 
+    let sender_len = sender_len as usize;
+    if (from_field.len() > sender_len) {
+        member_index = member_index + from_field.len() - sender_len - 1;
+    }
+    let member_seq = format!("[member_seq]\nindex = {:?}\nlength = {:?}", member_index, sender_len);
+
+    let mut relayer_index = to_index + 3; 
+    let recipient_len = recipient_len as usize;
+    if (to_field.len() > recipient_len) {
+        relayer_index = relayer_index + to_field.len() - recipient_len - 1;
+    }
+    let relayer_seq = format!("[relayer_seq]\nindex = {:?}\nlength = {:?}", relayer_index, recipient_len);
+
     // make the header value
-    let header = format!("header = {:?}", header);
+    let header = format!("[header]\nlen = {:?}\nstorage = {:?}", header_len, header);
     let header_len = format!("header_length = {}", header_len);
     // make the pubkey_modulus value
     let pubkey_modulus = format!(
-        "pubkey_modulus_limbs = {}",
-        quote_hex(bn_limbs(public_key.n().clone(), 2048))
+        "[pubkey]\nmodulus = {}\nredc = {}",
+        quote_hex(bn_limbs(public_key.n().clone(), 2048)),
+        quote_hex(redc_limbs(public_key.n().clone(), 2048))
     );
     // make the reduction parameter for the pubkey
     let redc_params = format!(
@@ -290,10 +347,8 @@ pub fn build_prover_toml(
     let padded_subject = format!("msg_hash = {:?}", padded_subject);
     // make the sender
     let padded_sender = format!("padded_member = {:?}", padded_sender);
-    let sender_len = format!("member_length = {}", sender_len);
     // make the recipient
-    let padded_recipient = format!("padded_relayer = {:?}", padded_recipient);
-    let recipient_len = format!("relayer_length = {}", recipient_len);
+    let padded_recipient = format!("[relayer]\nlen = {:?}\nstorage = {:?}", recipient_len, padded_recipient);
     // make the signature value
     let sig_limbs = bn_limbs(BigUint::from_bytes_be(signature), 2048);
     let signature = format!("signature = {}", quote_hex(sig_limbs));
@@ -301,16 +356,16 @@ pub fn build_prover_toml(
     // format for toml content
     let toml_content = format!(
         "{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}\n\n{}",
-        header,
-        header_len,
-        padded_subject,
+        signature,
         padded_sender,
-        sender_len,
+        padded_subject,
+        header,
+        from_seq,
+        member_seq,
         padded_recipient,
-        recipient_len,
+        to_seq,
+        relayer_seq,
         pubkey_modulus,
-        redc_params,
-        signature
     );
 
     // save to fs
@@ -333,7 +388,8 @@ pub fn quote_hex(input: String) -> String {
 
 pub fn get_padded_recipient(eml: &Eml) -> (Vec<u8>, u32) {
     let recipient = eml.to.as_ref().unwrap().to_string();
-    let recipient = recipient.as_bytes();
+    let emails = extract_emails(recipient);
+    let recipient = emails[emails.len()-1].as_bytes();
     let mut padded_recipient = vec![0u8; MAX_EMAIL_ADDRESS_LENGTH];
     let recipient_len = recipient.len() as u32;
     padded_recipient[..recipient.len()].copy_from_slice(recipient);
@@ -341,8 +397,9 @@ pub fn get_padded_recipient(eml: &Eml) -> (Vec<u8>, u32) {
 }
 
 pub fn get_padded_sender(eml: &Eml) -> (Vec<u8>, u32) {
-    let sender = eml.from.as_ref().unwrap().to_string();
-    let sender = sender.as_bytes();
+    let from_field = eml.from.as_ref().unwrap().to_string();
+    let emails = extract_emails(from_field);
+    let sender = emails[emails.len()-1].as_bytes();
     let mut padded_sender = vec![0u8; MAX_EMAIL_ADDRESS_LENGTH];
     let sender_len = sender.len() as u32;
     padded_sender[..sender.len()].copy_from_slice(sender);
