@@ -14,7 +14,7 @@ const TEST_EMAIL_ADDRESSES = [
     "ad@oxor.io"
 ]
 const TEST_SECRETS = [
-    1,
+    BigInt("2000000000000000000000000000000"),
     2,
     3,
     4,
