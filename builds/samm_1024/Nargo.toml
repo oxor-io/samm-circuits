@@ -2,7 +2,7 @@
 name = "samm_1024"
 type = "bin"
 authors = ["dry914"]
-compiler_version = ">=0.35.0"
+compiler_version = "0.35.0"
 
 [dependencies]
 samm = { path =  "../../lib"}

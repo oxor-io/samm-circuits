@@ -8,6 +8,7 @@ use dep::zkemail::Sequence;
 global LEVELS: u32 = 8; // Depth of the tree
 global MAX_EMAIL_HEADER_LENGTH: u32 = 1024;
 global MAX_EMAIL_ADDRESS_LENGTH: u32 = 124; // the max length of email address (4 slots 31 bytes each)
+global MAX_EMAIL_DOMAIN_LENGTH: u32 = 24;
 global MAX_EMAIL_FIELD_LENGTH: u32 = 256;
 global MSG_HASH_LENGTH: u32 = 44; // base64 hash
 global MIN_SECRET: Field = 2.pow_32(100);
@@ -19,6 +20,7 @@ pub fn verify_samm_logic(
     path_elements: [Field; LEVELS],
     secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
+    domain: pub BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
@@ -31,6 +33,11 @@ pub fn verify_samm_logic(
     assert(to_seq.length <= MAX_EMAIL_FIELD_LENGTH);
     assert(relayer.len == relayer_seq.length);
     assert(MIN_SECRET.lt(secret));
+
+    // check domain
+    for i in 0..MAX_EMAIL_DOMAIN_LENGTH {
+        assert(padded_member[member_seq.length - domain.len + i] == domain.storage[i]);
+    }
 
     // sender must be member email address
     utils::check_from_field(header, padded_member, from_seq, member_seq);
@@ -121,6 +128,20 @@ fn test_samm() {
         padded_member[i] = 0;
     }
 
+    // domain
+    let domain_bytes = "icloud.com".as_bytes();
+    let mut padded_domain: [u8; MAX_EMAIL_DOMAIN_LENGTH] = [0; MAX_EMAIL_DOMAIN_LENGTH];
+    for i in 0..domain_bytes.len() {
+        padded_domain[i] = domain_bytes[i];
+    }
+    for i in domain_bytes.len()..MAX_EMAIL_DOMAIN_LENGTH {
+        padded_domain[i] = 0;
+    }
+    let domain: BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH> = BoundedVec {
+        storage: padded_domain,
+        len: domain_bytes.len()
+    };
+
     println("MEMBER ---");
     println(padded_member);
     println(member.len());
@@ -160,6 +181,7 @@ fn test_samm() {
         path_elements,
         secret,
         padded_member,
+        domain,
         from_seq,
         member_seq,
         relayer,

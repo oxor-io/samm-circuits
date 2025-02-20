@@ -2,8 +2,8 @@ use dep::zkemail::{
     KEY_LIMBS_2048, dkim::RSAPubkey, Sequence
 };
 use dep::samm::{
-    LEVELS, MAX_EMAIL_HEADER_LENGTH, MAX_EMAIL_ADDRESS_LENGTH,
-    MSG_HASH_LENGTH, verify_samm_logic
+    LEVELS, MAX_EMAIL_HEADER_LENGTH, MAX_EMAIL_ADDRESS_LENGTH, 
+    MAX_EMAIL_DOMAIN_LENGTH, MSG_HASH_LENGTH, verify_samm_logic
 };
 
 
@@ -14,6 +14,7 @@ fn main(
     path_elements: [Field; LEVELS],
     secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
+    domain: pub BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: pub BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
@@ -25,7 +26,7 @@ fn main(
 ) -> pub (Field, Field) {
     // check samm logic
     let commitment = verify_samm_logic(header, root, path_indices, path_elements, secret, padded_member,
-        from_seq, member_seq, relayer, to_seq, relayer_seq, msg_hash);
+        domain, from_seq, member_seq, relayer, to_seq, relayer_seq, msg_hash);
 
     // verify the dkim signature over the header
     pubkey.verify_dkim_signature(header, signature);
@@ -85,6 +86,20 @@ fn test_samm() {
         padded_member[i] = 0;
     }
 
+    // domain
+    let domain_bytes = "icloud.com".as_bytes();
+    let mut padded_domain: [u8; MAX_EMAIL_DOMAIN_LENGTH] = [0; MAX_EMAIL_DOMAIN_LENGTH];
+    for i in 0..domain_bytes.len() {
+        padded_domain[i] = domain_bytes[i];
+    }
+    for i in domain_bytes.len()..MAX_EMAIL_DOMAIN_LENGTH {
+        padded_domain[i] = 0;
+    }
+    let domain: BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH> = BoundedVec {
+        storage: padded_domain,
+        len: domain_bytes.len()
+    };
+
     println("MEMBER ---");
     println(padded_member);
     println(member.len());
@@ -140,6 +155,7 @@ fn test_samm() {
         path_elements,
         secret,
         padded_member,
+        domain,
         from_seq,
         member_seq,
         relayer,
