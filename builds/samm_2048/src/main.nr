@@ -18,6 +18,7 @@ fn main(
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: pub BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
+    relayer_address: pub Field,
     to_seq: Sequence,
     relayer_seq: Sequence,
     msg_hash: pub [u8; MSG_HASH_LENGTH],
@@ -26,7 +27,7 @@ fn main(
 ) -> pub (Field, Field) {
     // check samm logic
     let commitment = verify_samm_logic(header, root, path_indices, path_elements, secret, padded_member,
-        domain, from_seq, member_seq, relayer, to_seq, relayer_seq, msg_hash);
+        domain, from_seq, member_seq, relayer, relayer_address, to_seq, relayer_seq, msg_hash);
 
     // verify the dkim signature over the header
     pubkey.verify_dkim_signature(header, signature);
@@ -122,6 +123,8 @@ fn test_samm() {
     println(relayer.storage);
     println(relayer.len);
 
+    let relayer_address = 894182716856906370877988051688260987085431495214;
+
     // msg_hash
     let subject = "wF2sZDx4mcK6AsJXTJMRgSocsCp22WWfZwxxwRHjgp0=".as_bytes();
     let mut msg_hash: [u8; MSG_HASH_LENGTH] = [0; MSG_HASH_LENGTH];
@@ -159,6 +162,7 @@ fn test_samm() {
         from_seq,
         member_seq,
         relayer,
+        relayer_address,
         to_seq,
         relayer_seq,
         msg_hash,

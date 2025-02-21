@@ -20,10 +20,11 @@ pub fn verify_samm_logic(
     path_elements: [Field; LEVELS],
     secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
-    domain: pub BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
+    domain: BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
+    relayer_address: Field,
     to_seq: Sequence,
     relayer_seq: Sequence,
     msg_hash: [u8; MSG_HASH_LENGTH]
@@ -38,6 +39,9 @@ pub fn verify_samm_logic(
     for i in 0..MAX_EMAIL_DOMAIN_LENGTH {
         assert(padded_member[member_seq.length - domain.len + i] == domain.storage[i]);
     }
+
+    // check relayer address - some mock computation for constraint creation
+    assert(relayer_address.pow_32(2) == relayer_address.pow_32(2));
 
     // sender must be member email address
     utils::check_from_field(header, padded_member, from_seq, member_seq);
@@ -164,6 +168,8 @@ fn test_samm() {
     println(relayer.storage);
     println(relayer.len);
 
+    let relayer_address = 894182716856906370877988051688260987085431495214;
+
     // msg_hash
     let subject = "wF2sZDx4mcK6AsJXTJMRgSocsCp22WWfZwxxwRHjgp0=".as_bytes();
     let mut msg_hash: [u8; MSG_HASH_LENGTH] = [0; MSG_HASH_LENGTH];
@@ -185,6 +191,7 @@ fn test_samm() {
         from_seq,
         member_seq,
         relayer,
+        relayer_address,
         to_seq,
         relayer_seq,
         msg_hash
