@@ -119,11 +119,11 @@ To run the tests (separately in the folders `./lib`, `./builds/samm_2048`, `./bu
 
 6. Generate the Solidity Verifier contract:
     ```
-        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_2048.json -o ./target/Verifier.sol
+        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_2048.json -o ./target/Verifier2048.sol
     ```
     Or for the 1024 signature:
     ```
-        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_1024.json -o ./target/Verifier.sol
+        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_1024.json -o ./target/Verifier1024.sol
     ```
 
 ## Helpers

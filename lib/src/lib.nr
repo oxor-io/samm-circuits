@@ -168,7 +168,7 @@ fn test_samm() {
     println(relayer.storage);
     println(relayer.len);
 
-    let relayer_address = 894182716856906370877988051688260987085431495214;
+    let relayer_address = 728815563385977040452943777879061427756277306518; // 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496
 
     // msg_hash
     let subject = "wF2sZDx4mcK6AsJXTJMRgSocsCp22WWfZwxxwRHjgp0=".as_bytes();
