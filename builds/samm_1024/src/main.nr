@@ -3,7 +3,7 @@ use dep::zkemail::{
 };
 use dep::samm::{
     LEVELS, MAX_EMAIL_HEADER_LENGTH, MAX_EMAIL_ADDRESS_LENGTH,
-    MSG_HASH_LENGTH, verify_samm_logic
+    MAX_EMAIL_DOMAIN_LENGTH, MSG_HASH_LENGTH, verify_samm_logic
 };
 
 
@@ -14,9 +14,11 @@ fn main(
     path_elements: [Field; LEVELS],
     secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
+    domain: pub BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: pub BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
+    relayer_address: pub Field,
     to_seq: Sequence,
     relayer_seq: Sequence,
     msg_hash: pub [u8; MSG_HASH_LENGTH],
@@ -25,7 +27,7 @@ fn main(
 ) -> pub (Field, Field) {
     // check samm logic
     let commitment = verify_samm_logic(header, root, path_indices, path_elements, secret, padded_member,
-        from_seq, member_seq, relayer, to_seq, relayer_seq, msg_hash);
+        domain, from_seq, member_seq, relayer, relayer_address, to_seq, relayer_seq, msg_hash);
 
     // verify the dkim signature over the header
     pubkey.verify_dkim_signature(header, signature);

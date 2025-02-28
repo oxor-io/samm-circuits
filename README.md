@@ -119,11 +119,11 @@ To run the tests (separately in the folders `./lib`, `./builds/samm_2048`, `./bu
 
 6. Generate the Solidity Verifier contract:
     ```
-        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_2048.json -o ./target/Verifier.sol
+        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_2048.json -o ./target/Verifier2048.sol
     ```
     Or for the 1024 signature:
     ```
-        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_1024.json -o ./target/Verifier.sol
+        bb contract_ultra_honk -k ./target/vk -c $CRS_PATH -b ./target/samm_1024.json -o ./target/Verifier1024.sol
     ```
 
 ## Helpers
@@ -163,6 +163,19 @@ And run the script:
     npx run scripts/generateDataForTest.js
 ```
 As a result, you will get a `Prover_tree.toml` file with a Merkle proof (circuit's input signal) inside. This file should be combined with the `Prover_email.toml` from the `email_parser` to compile the resulting `Prover.toml`.
+
+### Prepare proof for smart contract tests
+
+[Get proof](https://noir-lang.org/docs/how_to/how-to-solidity-verifier#step-4---verifying) for SC part tests:
+```
+  cat ./target/proof2048 | od -An -v -t x1 | tr -d $' \n' | sed 's/^.\{8\}//' | (read hex; echo "${hex:0:192}${hex:12864}")
+```
+Where `192 + 198 * 64 = 12864`. 198 - number of public inputs.
+
+Commit and pubkeyHash for SC part tests:
+```
+  cat ./target/proof2048 | od -An -v -t x1 | tr -d $' \n' | sed 's/^.\{8\}//' | (read hex; echo "${hex:12736:128}")
+```
 
 ## License
 

@@ -8,8 +8,10 @@ use dep::zkemail::Sequence;
 global LEVELS: u32 = 8; // Depth of the tree
 global MAX_EMAIL_HEADER_LENGTH: u32 = 1024;
 global MAX_EMAIL_ADDRESS_LENGTH: u32 = 124; // the max length of email address (4 slots 31 bytes each)
-global MAX_EMAIL_FIELD_LENGTH: u32 = 1029;
+global MAX_EMAIL_DOMAIN_LENGTH: u32 = 24;
+global MAX_EMAIL_FIELD_LENGTH: u32 = 256;
 global MSG_HASH_LENGTH: u32 = 44; // base64 hash
+global MIN_SECRET: Field = 2.pow_32(100);
 
 pub fn verify_samm_logic(
     header: BoundedVec<u8, MAX_EMAIL_HEADER_LENGTH>,
@@ -18,19 +20,28 @@ pub fn verify_samm_logic(
     path_elements: [Field; LEVELS],
     secret: Field,
     padded_member: [u8; MAX_EMAIL_ADDRESS_LENGTH],
+    domain: BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH>,
     from_seq: Sequence,
     member_seq: Sequence,
     relayer: BoundedVec<u8, MAX_EMAIL_ADDRESS_LENGTH>,
+    relayer_address: Field,
     to_seq: Sequence,
     relayer_seq: Sequence,
     msg_hash: [u8; MSG_HASH_LENGTH]
 ) -> Field {
-    assert(header.len <= MAX_EMAIL_HEADER_LENGTH);
     assert(from_seq.length <= MAX_EMAIL_FIELD_LENGTH);
     assert(member_seq.length <= MAX_EMAIL_ADDRESS_LENGTH);
     assert(to_seq.length <= MAX_EMAIL_FIELD_LENGTH);
-    assert(relayer_seq.length <= MAX_EMAIL_ADDRESS_LENGTH);
     assert(relayer.len == relayer_seq.length);
+    assert(MIN_SECRET.lt(secret));
+
+    // check domain
+    for i in 0..MAX_EMAIL_DOMAIN_LENGTH {
+        assert(padded_member[member_seq.length - domain.len + i] == domain.storage[i]);
+    }
+
+    // check relayer address - some mock computation for constraint creation
+    assert(relayer_address.pow_32(2) == relayer_address.pow_32(2));
 
     // sender must be member email address
     utils::check_from_field(header, padded_member, from_seq, member_seq);
@@ -108,8 +119,8 @@ fn test_samm() {
     // tree part 
     let path_indices = [0,0,0,0,0,0,0,0];
     let path_elements = [12181380747766530663019567607642183183842923227107503250029079799455572184768,14752333704901535729870671529802743390978931851983497868673528090961169705309,16538135409515176547194568220928820916682786764828918280336228751737583509415,11286972368698509976183087595462810875513684078608517520839298933882497716792,3607627140608796879659380071776844901612302623152076817094415224584923813162,19712377064642672829441595136074946683621277828620209496774504837737984048981,20775607673010627194014556968476266066927294572720319469184847051418138353016,3396914609616007258851405644437304192397291162432396347162513310381425243293];
-    let root = 3693852034816220969980398025931646744713742489852125909138985185751997118833;
-    let secret = 1;
+    let root = 20511819156590425064232637729680364151906840836244771318276577108131705348606;
+    let secret = 2000000000000000000000000000000;
 
     // member
     let member = "swoons.00rubbing@icloud.com".as_bytes();
@@ -120,6 +131,20 @@ fn test_samm() {
     for i in member.len()..MAX_EMAIL_ADDRESS_LENGTH {
         padded_member[i] = 0;
     }
+
+    // domain
+    let domain_bytes = "icloud.com".as_bytes();
+    let mut padded_domain: [u8; MAX_EMAIL_DOMAIN_LENGTH] = [0; MAX_EMAIL_DOMAIN_LENGTH];
+    for i in 0..domain_bytes.len() {
+        padded_domain[i] = domain_bytes[i];
+    }
+    for i in domain_bytes.len()..MAX_EMAIL_DOMAIN_LENGTH {
+        padded_domain[i] = 0;
+    }
+    let domain: BoundedVec<u8, MAX_EMAIL_DOMAIN_LENGTH> = BoundedVec {
+        storage: padded_domain,
+        len: domain_bytes.len()
+    };
 
     println("MEMBER ---");
     println(padded_member);
@@ -143,6 +168,8 @@ fn test_samm() {
     println(relayer.storage);
     println(relayer.len);
 
+    let relayer_address = 728815563385977040452943777879061427756277306518; // 0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496
+
     // msg_hash
     let subject = "wF2sZDx4mcK6AsJXTJMRgSocsCp22WWfZwxxwRHjgp0=".as_bytes();
     let mut msg_hash: [u8; MSG_HASH_LENGTH] = [0; MSG_HASH_LENGTH];
@@ -160,9 +187,11 @@ fn test_samm() {
         path_elements,
         secret,
         padded_member,
+        domain,
         from_seq,
         member_seq,
         relayer,
+        relayer_address,
         to_seq,
         relayer_seq,
         msg_hash

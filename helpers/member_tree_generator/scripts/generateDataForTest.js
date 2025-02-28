@@ -7,14 +7,14 @@ const { writeFile } = require("fs");
 const { buildPoseidon } = require("circomlibjs");
 
 const TEST_EMAIL_ADDRESSES = [
-    "swoons.00rubbing@icloud.com",
+    "dry.914@yandex.com", // "swoons.00rubbing@icloud.com",
     "aa@oxor.io",
     "ab@oxor.io",
     "ac@oxor.io",
     "ad@oxor.io"
 ]
 const TEST_SECRETS = [
-    1,
+    BigInt("2000000000000000000000000000000"),
     2,
     3,
     4,
